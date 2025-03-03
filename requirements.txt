@@ -4,3 +4,12 @@ sentence-transformers
 numpy
 pandas
 gradio
+matplotlib
+scikit-learn
+torch
+torchvision
+torchaudio
+datasets
+scipy
+huggingface_hub
+accelerate>=0.26.0

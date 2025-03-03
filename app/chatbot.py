@@ -5,16 +5,15 @@ import pickle
 import os
 import pandas as pd
 
+# Загружаем обученную модель
+model = SentenceTransformer("fine_tuned_tyrion_model")
+
 # Загружаем данные
 file_path = "data/game-of-thrones.csv"
 df = pd.read_csv(file_path)
 
 # Фильтруем реплики Тириона
 tyrion_lines = df[df["Speaker"] == "TYRION"]["Text"].dropna().tolist()
-tyrion_lines = [line.strip() for line in tyrion_lines if isinstance(line, str) and line.strip()]
-
-# Загружаем Sentence-BERT
-model = SentenceTransformer("all-MiniLM-L6-v2")
 
 # Кеширование эмбеддингов
 embeddings_file = "tyrion_embeddings.pkl"
