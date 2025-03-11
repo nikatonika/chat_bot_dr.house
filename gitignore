@@ -16,4 +16,4 @@ requirements.txt.lock
 .DS_Store
 .vscode/
 
-models/sbert_model/*
+models/sbert_model/
