@@ -15,3 +15,5 @@ requirements.txt.lock
 # Игнорируем файлы ОС и редакторов
 .DS_Store
 .vscode/
+
+models/sbert_model/
