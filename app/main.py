@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
-from app.chatbot import get_tyrion_response
+from app.chatbot import get_house_response
 from fastapi.templating import Jinja2Templates
 
 app = FastAPI()
@@ -16,5 +16,5 @@ async def home(request: Request):
 
 @app.post("/chat")
 async def chat_endpoint(user_input: UserInput):
-    response = get_tyrion_response(user_input.text)
+    response = get_house_response(user_input.text)
     return {"response": response}
