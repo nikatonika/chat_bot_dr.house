@@ -4,6 +4,8 @@ uvicorn
 pydantic
 jinja2
 datasets
+Flask
+requests
 
 # === Библиотеки для работы с ML-моделями ===
 torch

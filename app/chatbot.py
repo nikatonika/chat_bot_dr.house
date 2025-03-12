@@ -1,41 +1,43 @@
+import os
 import numpy as np
 import torch
-import pickle
-from sentence_transformers import SentenceTransformer, util
-import os
+from sentence_transformers import SentenceTransformer, CrossEncoder, util
+from scipy.spatial.distance import cdist
 
-# === Загрузка обученной модели ===
+# Определение устройства
 device = "cuda" if torch.cuda.is_available() else "cpu"
-model = SentenceTransformer("nikatonika/chatbot_biencoder", device=device)
 
-# === Загрузка предрассчитанных векторов ответов ===
-data_path = "data/response_vectors.pkl"
-if os.path.exists(data_path):
-    with open(data_path, "rb") as f:
-        response_vectors = pickle.load(f)
-else:
-    raise FileNotFoundError(f"Файл {data_path} не найден. Проверь путь и наличие данных.")
+# === Загрузка моделей ===
+print("Загрузка биэнкодера...")
+bi_encoder = SentenceTransformer("nikatonika/chatbot_biencoder", device=device)
 
-# === Загрузка текстов ответов ===
-triplets_path = "data/house_triplets.pkl"
-if os.path.exists(triplets_path):
-    with open(triplets_path, "rb") as f:
-        triplets_df = pickle.load(f)
-    house_responses = triplets_df["response"].tolist()
-else:
-    raise FileNotFoundError(f"Файл {triplets_path} не найден. Проверь путь и наличие данных.")
+print("Загрузка кросс-энкодера...")
+cross_encoder = CrossEncoder("nikatonika/chatbot_reranker", device=device)
 
-# === Функция поиска наиболее похожего ответа ===
-def get_house_response(user_input: str):
-    """Находит наиболее подходящий ответ в базе."""
-    query_vector = model.encode([user_input], convert_to_numpy=True)
-    scores = util.cos_sim(query_vector, response_vectors)[0]
-    best_match_idx = np.argmax(scores)
-    return house_responses[best_match_idx]
+# === Загрузка эмбеддингов ответов ===
+print("Загрузка эмбеддингов ответов...")
+response_vectors = np.load("data/response_vectors.pkl", allow_pickle=True)
+house_responses = np.load("data/house_responses.npy", allow_pickle=True)
 
-if __name__ == "__main__":
-    while True:
-        query = input("Введите текст: ")
-        if query.lower() in ["exit", "quit"]:
-            break
-        print(f"Доктор Хаус отвечает: {get_house_response(query)}")
+# === Функции инференса ===
+def rerank_with_cross_encoder(query, candidates):
+    """Ранжирует кандидатов с помощью кросс-энкодера"""
+    pairs = [[query, candidate] for candidate in candidates]
+    scores = cross_encoder.predict(pairs)  # теперь predict работает!
+    best_idx = np.argmax(scores)
+    return candidates[best_idx]
+
+def get_house_response(query):
+    """Выдает ответ, используя биэнкодер для поиска и кросс-энкодер для ранжирования"""
+    query_embedding = bi_encoder.encode([query], convert_to_numpy=True)
+
+    # Поиск ближайших векторов без faiss
+    distances = cdist(query_embedding, response_vectors, metric="cosine")
+    best_indices = np.argsort(distances[0])[:5]  # Берем 5 ближайших кандидатов
+
+    candidates = [house_responses[idx] for idx in best_indices]
+
+    # Ранжируем с помощью кросс-энкодера и выбираем лучший ответ
+    best_response = rerank_with_cross_encoder(query, candidates)
+
+    return best_response
