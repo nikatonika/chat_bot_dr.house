@@ -1,56 +1,46 @@
 import torch
 import numpy as np
-import faiss
 import pickle
-from sentence_transformers import SentenceTransformer
+import faiss
 import argparse
+from sentence_transformers import SentenceTransformer
+import os
 
 # === Аргументы командной строки ===
-parser = argparse.ArgumentParser(description="Инференс модели Доктора Хауса")
-parser.add_argument("--query", type=str, help="Текст запроса (анкор)")
-parser.add_argument("--hf_model", type=str, default="nikatonika/chatbot_biencoder", help="Название модели на Hugging Face")
-parser.add_argument("--vector_path", type=str, default="data/response_vectors.pkl", help="Путь к векторизованным ответам")
-parser.add_argument("--triplets_path", type=str, default="data/house_triplets.pkl", help="Путь к триплетам")
+parser = argparse.ArgumentParser(description="Ускоренный инференс би-энкодера Доктора Хауса")
+parser.add_argument("--query", type=str, help="Текст запроса")
+parser.add_argument("--hf_model", type=str, default="nikatonika/chatbot_biencoder", help="Название модели")
+parser.add_argument("--triplets_path", type=str, default=os.path.join("..", "data", "house_triplets.pkl"), help="Путь к триплетам")
 args = parser.parse_args()
 
-# === Загрузка модели с Hugging Face ===
-device = "cuda" if torch.cuda.is_available() else "cpu"
-print(f"Загружаем модель с Hugging Face: {args.hf_model}")
-model = SentenceTransformer(args.hf_model, device=device)
+# === Загрузка модели ===
+print(f"Загрузка модели: {args.hf_model}")
+model = SentenceTransformer(args.hf_model)
 
-# === Загрузка предрассчитанных векторов ===
-print("Загружаем предрассчитанные векторы ответов...")
-with open(args.vector_path, "rb") as f:
-    response_vectors = pickle.load(f)
-
-# Преобразуем в float32 (так требует FAISS)
-response_vectors = response_vectors.astype(np.float32)
-
-# === Загрузка текстов ответов ===
-print("Загружаем тексты ответов...")
+# === Загрузка данных ===
+print(f"Загрузка триплетов из {args.triplets_path}...")
 with open(args.triplets_path, "rb") as f:
-    triplets_data = pickle.load(f)
+    triplets_df = pickle.load(f)
 
-house_responses = triplets_data["response"].tolist()
+house_responses = triplets_df["response"].tolist()
+house_vectors = model.encode(house_responses, convert_to_numpy=True)
 
-# === Инициализация FAISS ===
-index = faiss.IndexFlatIP(response_vectors.shape[1])
-index.add(response_vectors)
+# === Создание индекса FAISS ===
+index = faiss.IndexFlatL2(house_vectors.shape[1])
+index.add(house_vectors)
 
-# === Функция поиска лучшего ответа ===
+# === Функция поиска ответа ===
 def find_best_response(query):
-    """Находит наиболее похожий ответ в базе с FAISS."""
-    query_vector = model.encode([query], convert_to_numpy=True).astype(np.float32)
-    _, best_idx = index.search(query_vector, 1)
-    return house_responses[best_idx[0][0]]
+    query_vector = model.encode([query], convert_to_numpy=True)
+    _, indices = index.search(query_vector, 1)
+    return house_responses[indices[0][0]]
 
-# === Запуск инференса ===
+# === Запуск ===
 if args.query:
-    response = find_best_response(args.query)
-    print(f"Доктор Хаус отвечает: {response}")
+    print(f"Доктор Хаус отвечает: {find_best_response(args.query)}")
 else:
     while True:
-        query = input("Введите текст: ")
-        if query.lower() in ["exit", "quit"]:
+        user_query = input("Введите текст: ")
+        if user_query.lower() in ["exit", "quit"]:
             break
-        print(f"Доктор Хаус отвечает: {find_best_response(query)}")
+        print(f"Доктор Хаус отвечает: {find_best_response(user_query)}")
