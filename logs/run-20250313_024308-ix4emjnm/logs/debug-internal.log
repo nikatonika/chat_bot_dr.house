@@ -1,0 +1,30 @@
+{"time":"2025-03-13T02:43:08.747112311Z","level":"INFO","msg":"stream: starting","core version":"0.19.8","symlink path":"/content/wandb/run-20250313_024308-ix4emjnm/logs/debug-core.log"}
+{"time":"2025-03-13T02:43:08.852496687Z","level":"INFO","msg":"created new stream","id":"ix4emjnm"}
+{"time":"2025-03-13T02:43:08.852533952Z","level":"INFO","msg":"stream: started","id":"ix4emjnm"}
+{"time":"2025-03-13T02:43:08.852576547Z","level":"INFO","msg":"writer: Do: started","stream_id":"ix4emjnm"}
+{"time":"2025-03-13T02:43:08.852604785Z","level":"INFO","msg":"sender: started","stream_id":"ix4emjnm"}
+{"time":"2025-03-13T02:43:08.852626011Z","level":"INFO","msg":"handler: started","stream_id":"ix4emjnm"}
+{"time":"2025-03-13T02:43:09.295960416Z","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-03-13T02:43:13.225360409Z","level":"INFO","msg":"Pausing system monitor"}
+{"time":"2025-03-13T02:43:13.230565458Z","level":"INFO","msg":"Resuming system monitor"}
+{"time":"2025-03-13T02:43:15.626521055Z","level":"INFO","msg":"Pausing system monitor"}
+{"time":"2025-03-13T02:43:15.631490919Z","level":"INFO","msg":"Resuming system monitor"}
+{"time":"2025-03-13T02:43:15.859608025Z","level":"INFO","msg":"Pausing system monitor"}
+{"time":"2025-03-13T02:43:17.817684422Z","level":"INFO","msg":"Resuming system monitor"}
+{"time":"2025-03-13T02:43:24.23009188Z","level":"INFO","msg":"Pausing system monitor"}
+{"time":"2025-03-13T02:43:24.236234679Z","level":"INFO","msg":"Resuming system monitor"}
+{"time":"2025-03-13T02:43:26.241116973Z","level":"INFO","msg":"Pausing system monitor"}
+{"time":"2025-03-13T02:43:26.245551679Z","level":"INFO","msg":"Resuming system monitor"}
+{"time":"2025-03-13T02:43:35.737315186Z","level":"INFO","msg":"Pausing system monitor"}
+{"time":"2025-03-13T02:52:32.762717688Z","level":"INFO","msg":"Resuming system monitor"}
+{"time":"2025-03-13T03:17:49.452281033Z","level":"INFO","msg":"Pausing system monitor"}
+{"time":"2025-03-13T03:17:49.460355746Z","level":"INFO","msg":"Resuming system monitor"}
+{"time":"2025-03-13T03:17:56.115093985Z","level":"INFO","msg":"Pausing system monitor"}
+{"time":"2025-03-13T03:31:16.239528176Z","level":"INFO","msg":"stream: closing","id":"ix4emjnm"}
+{"time":"2025-03-13T03:31:16.239574557Z","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-03-13T03:31:16.24115105Z","level":"INFO","msg":"Stopped system monitor"}
+{"time":"2025-03-13T03:31:17.065034928Z","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-03-13T03:31:17.321327151Z","level":"INFO","msg":"handler: closed","stream_id":"ix4emjnm"}
+{"time":"2025-03-13T03:31:17.321372092Z","level":"INFO","msg":"sender: closed","stream_id":"ix4emjnm"}
+{"time":"2025-03-13T03:31:17.321363228Z","level":"INFO","msg":"writer: Close: closed","stream_id":"ix4emjnm"}
+{"time":"2025-03-13T03:31:17.321511012Z","level":"INFO","msg":"stream: closed","id":"ix4emjnm"}
