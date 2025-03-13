@@ -1,0 +1,10 @@
+{"time":"2025-03-13T04:34:31.518429195Z","level":"INFO","msg":"main: starting server","port-filename":"/tmp/tmp5b_0bbxk/port-29373.txt","pid":29373,"log-level":0,"disable-analytics":false,"shutdown-on-parent-exit":false}
+{"time":"2025-03-13T04:34:31.523324424Z","level":"INFO","msg":"Will exit if parent process dies.","ppid":29373}
+{"time":"2025-03-13T04:34:31.523287687Z","level":"INFO","msg":"server is running","addr":{"IP":"127.0.0.1","Port":34027,"Zone":""}}
+{"time":"2025-03-13T04:34:31.7060327Z","level":"INFO","msg":"connection: ManageConnectionData: new connection created","id":"127.0.0.1:59388"}
+{"time":"2025-03-13T04:34:32.200000223Z","level":"INFO","msg":"handleInformInit: received","streamId":"7p9eufb2","id":"127.0.0.1:59388"}
+{"time":"2025-03-13T04:34:32.302935167Z","level":"INFO","msg":"handleInformInit: stream started","streamId":"7p9eufb2","id":"127.0.0.1:59388"}
+{"time":"2025-03-13T05:12:55.333864038Z","level":"INFO","msg":"handleInformFinish: finish message received","streamId":"7p9eufb2","id":"127.0.0.1:59388"}
+{"time":"2025-03-13T05:12:55.334009681Z","level":"INFO","msg":"handleInformFinish: stream closed","streamId":"7p9eufb2","id":"127.0.0.1:59388"}
+{"time":"2025-03-13T05:17:09.809420622Z","level":"INFO","msg":"handleInformInit: received","streamId":"pyivfvu1","id":"127.0.0.1:59388"}
+{"time":"2025-03-13T05:17:09.912278778Z","level":"INFO","msg":"handleInformInit: stream started","streamId":"pyivfvu1","id":"127.0.0.1:59388"}

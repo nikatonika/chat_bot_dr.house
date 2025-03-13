@@ -1,0 +1,37 @@
+{
+  "os": "Linux-6.1.85+-x86_64-with-glibc2.35",
+  "python": "CPython 3.11.11",
+  "startedAt": "2025-03-13T03:31:36.160769Z",
+  "program": "cross_encoder_training.ipynb",
+  "email": "veronika.zaslavskaya@gmail.com",
+  "root": "/content",
+  "host": "31f14b9e8b5b",
+  "executable": "/usr/bin/python3",
+  "colab": "https://colab.research.google.com/notebook#fileId=1_yzhH9qdxe9iWEHT9MU7h863PdrItLIv",
+  "cpu_count": 6,
+  "cpu_count_logical": 12,
+  "gpu": "NVIDIA L4",
+  "gpu_count": 1,
+  "disk": {
+    "/": {
+      "total": "120942624768",
+      "used": "42370387968"
+    }
+  },
+  "memory": {
+    "total": "56866914304"
+  },
+  "cpu": {
+    "count": 6,
+    "countLogical": 12
+  },
+  "gpu_nvidia": [
+    {
+      "name": "NVIDIA L4",
+      "memoryTotal": "24152899584",
+      "cudaCores": 7424,
+      "architecture": "Ada"
+    }
+  ],
+  "cudaVersion": "12.4"
+}
