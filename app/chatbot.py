@@ -33,7 +33,7 @@ def get_house_response(query):
 
     # Поиск ближайших векторов без faiss
     distances = cdist(query_embedding, response_vectors, metric="cosine")
-    best_indices = np.argsort(distances[0])[:5]  # Берем 5 ближайших кандидатов
+    best_indices = np.argsort(distances[0])[:10]  # Берем 10 ближайших кандидатов
 
     candidates = [house_responses[idx] for idx in best_indices]
 

@@ -1,36 +1,28 @@
-# === Основные библиотеки ===
 fastapi
 uvicorn
 pydantic
 jinja2
-datasets
 Flask
 requests
-
-# === Библиотеки для работы с ML-моделями ===
 torch
+torchvision
 sentence-transformers
 transformers
-faiss-cpu  # Для быстрого поиска ближайших соседей
-
-# === Обработка данных ===
+faiss-cpu
+evaluate
 numpy
 pandas
 scikit-learn
 matplotlib
 seaborn
 tqdm
-
-# === Работа с файлами и логированием ===
-pickle-mixin  # Работа с pickle
-json5  # Чтение и запись JSON
-argparse  # Обработка аргументов командной строки
-warnings  # Управление предупреждениями
-shutil  # Для работы с файлами и архивами
-re  # Регулярные выражения
-
-# === Hugging Face Training ===
-evaluate  # Оценка модели
-datasets  # Hugging Face Datasets
-transformers  # Hugging Face Transformers
-torchvision  # Может понадобиться для моделей, зависящих от изображений
+datasets
+huggingface_hub
+pickle-mixin
+json5
+argparse
+warnings
+shutil
+re
+wandb
+google-colab
