@@ -1,29 +1,28 @@
 import torch
 import numpy as np
-import pickle
 import faiss
 import argparse
 from sentence_transformers import SentenceTransformer
 import os
 
 # === Аргументы командной строки ===
-parser = argparse.ArgumentParser(description="Ускоренный инференс би-энкодера Доктора Хауса")
+parser = argparse.ArgumentParser(description="Ускоренный инференс би-энкодера Доктора Хауса с FAISS")
 parser.add_argument("--query", type=str, help="Текст запроса")
-parser.add_argument("--hf_model", type=str, default="nikatonika/chatbot_biencoder", help="Название модели")
-parser.add_argument("--triplets_path", type=str, default=os.path.join("..", "data", "house_triplets.pkl"), help="Путь к триплетам")
+parser.add_argument("--hf_model", type=str, default="nikatonika/chatbot_biencoder_v2_cos_sim", help="Название модели")
+parser.add_argument("--embeddings_path", type=str, default=os.path.join("data", "response_embeddings.npy"), help="Путь к эмбеддингам")
+parser.add_argument("--responses_path", type=str, default=os.path.join("data", "questions_answers.npy"), help="Путь к ответам")
 args = parser.parse_args()
 
 # === Загрузка модели ===
 print(f"Загрузка модели: {args.hf_model}")
-model = SentenceTransformer(args.hf_model)
+model = SentenceTransformer(args.hf_model, device="cuda" if torch.cuda.is_available() else "cpu")
 
 # === Загрузка данных ===
-print(f"Загрузка триплетов из {args.triplets_path}...")
-with open(args.triplets_path, "rb") as f:
-    triplets_df = pickle.load(f)
+print(f"Загрузка эмбеддингов из {args.embeddings_path}...")
+house_vectors = np.load(args.embeddings_path)
 
-house_responses = triplets_df["response"].tolist()
-house_vectors = model.encode(house_responses, convert_to_numpy=True)
+print(f"Загрузка ответов из {args.responses_path}...")
+house_responses = np.load(args.responses_path, allow_pickle=True)
 
 # === Создание индекса FAISS ===
 index = faiss.IndexFlatL2(house_vectors.shape[1])

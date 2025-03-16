@@ -28,4 +28,5 @@ async def chat(request: QueryRequest):
         raise HTTPException(status_code=400, detail="Запрос не должен быть пустым")
 
     response = get_house_response(user_input)
+
     return {"response": response}

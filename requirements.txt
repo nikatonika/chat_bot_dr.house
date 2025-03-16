@@ -1,28 +1,35 @@
+# API и сервер
 fastapi
 uvicorn
 pydantic
 jinja2
-Flask
 requests
+
+# Работа с моделями
 torch
 torchvision
 sentence-transformers
 transformers
 faiss-cpu
 evaluate
+huggingface_hub
+
+# Работа с данными
 numpy
 pandas
 scikit-learn
+datasets
+
+# Визуализация и логи
 matplotlib
 seaborn
 tqdm
-datasets
-huggingface_hub
-pickle-mixin
-json5
+wandb
+
+# Работа с аргументами командной строки
 argparse
-warnings
+
+# Файловые операции, регулярки и прочее (не требуют установки)
 shutil
 re
-wandb
-google-colab
+warnings
