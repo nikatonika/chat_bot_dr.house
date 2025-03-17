@@ -58,11 +58,9 @@ def find_candidates_fast(queries, top_k=10):
     top_indices = np.argpartition(-similarities, top_k, axis=0)[:top_k].T  
 
     batch_candidates = [
-    [house_responses[idx].strip("[]'\"") if isinstance(house_responses[idx], str) else str(house_responses[idx]) for idx in indices]
+    [" ".join(str(house_responses[idx]).split("\n")).strip("[]'\"") for idx in indices]
     for indices in top_indices
     ]
-
-
 
     # Логирование
     print(f"Кандидаты перед ранжированием (исправленные): {batch_candidates}")
@@ -75,9 +73,9 @@ def rerank_with_cross_encoder_fast(query, candidates):
         return get_sarcastic_response(query)  # Если нет кандидатов, берем заглушку
 
     # Разворачиваем вложенные массивы и удаляем `repr()`
-    candidates = [str(c).strip("[]'\"") if isinstance(c, (list, tuple)) else str(c).strip("[]'\"") for c in candidates]
-
-    # Формируем корректный batch_pairs
+        # Если строка содержит несколько реплик в одном элементе, берем только первую
+    candidates = [c.split('"  "')[0].strip() for c in candidates]
+    candidates = [str(c).strip("[]'\"") for c in candidates]
     batch_pairs = [[query, candidate] for candidate in candidates]
 
     print(f"Запрос: {query}")
@@ -87,12 +85,19 @@ def rerank_with_cross_encoder_fast(query, candidates):
         scores = cross_encoder.predict(batch_pairs, convert_to_numpy=True)
 
     best_idx = np.argmax(scores)
-    best_response = candidates[best_idx] if best_idx < len(candidates) else get_sarcastic_response(query)
+    best_response = candidates[best_idx].strip("[]'\"") if best_idx < len(candidates) else get_sarcastic_response(query)
 
-    print(f"Лучший ответ: {best_response}")  # Проверка, что это одна строка
+    # Проверяем, что мы взяли только одну строку, а не несколько
+    if "\n" in best_response:
+        best_response = best_response.split("\n")[0]  # Берем только первую строку
+
+    best_response = best_response.strip()
+
+
+
+    print(f"Финальный ответ: {best_response}")
 
     return best_response
-
 
 def get_sarcastic_response(query):
     """Выбирает саркастическую заглушку."""
