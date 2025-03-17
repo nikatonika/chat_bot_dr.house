@@ -10,60 +10,113 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 # === Загрузка моделей ===
 print("Загрузка биэнкодера...")
 try:
-    bi_encoder = SentenceTransformer("nikatonika/chatbot_biencoder", device=device)
+    bi_encoder = SentenceTransformer("nikatonika/chatbot_biencoder_v2_cos_sim", device=device)
 except Exception as e:
     print(f"Ошибка загрузки биэнкодера: {e}")
     exit(1)
 
 print("Загрузка кросс-энкодера...")
 try:
-    cross_encoder = CrossEncoder("nikatonika/chatbot_reranker", device=device)
+    cross_encoder = CrossEncoder("nikatonika/chatbot_reranker_v2", device=device)
 except Exception as e:
     print(f"Ошибка загрузки кросс-энкодера: {e}")
     exit(1)
 
 # === Поиск данных ===
-data_paths = ["data", "data_old"]  # Ищем сначала в data, потом в data_old
-response_vectors_path = None
-house_responses_path = None
+data_folder = "data"
+response_vectors_path = os.path.join(data_folder, "response_embeddings.npy")
+house_responses_path = os.path.join(data_folder, "questions_answers.npy")
+sarcasm_responses_path = os.path.join(data_folder, "house_sarcasm.npy")
+sarcasm_embeddings_path = os.path.join(data_folder, "house_sarcasm_embeddings.npy")
 
-for path in data_paths:
-    if os.path.exists(os.path.join(path, "response_vectors.pkl")):
-        response_vectors_path = os.path.join(path, "response_vectors.pkl")
-    if os.path.exists(os.path.join(path, "house_responses.npy")):
-        house_responses_path = os.path.join(path, "house_responses.npy")
-
-if not response_vectors_path or not house_responses_path:
-    print("Ошибка: файлы эмбеддингов не найдены ни в data, ни в data_old!")
+# Проверяем существование файлов
+if not all(os.path.exists(path) for path in [
+    response_vectors_path, house_responses_path,
+    sarcasm_responses_path, sarcasm_embeddings_path
+]):
+    print("Ошибка: файлы эмбеддингов не найдены!")
     exit(1)
 
-print(f"Загрузка эмбеддингов из {response_vectors_path} и {house_responses_path}...")
+print(f"Загрузка эмбеддингов из {data_folder}...")
 try:
     response_vectors = np.load(response_vectors_path, allow_pickle=True)
     house_responses = np.load(house_responses_path, allow_pickle=True)
+    sarcasm_responses = np.load(sarcasm_responses_path, allow_pickle=True)
+    sarcasm_embeddings = np.load(sarcasm_embeddings_path, allow_pickle=True)
 except Exception as e:
     print(f"Ошибка загрузки эмбеддингов: {e}")
     exit(1)
 
-# === Функции инференса ===
-def rerank_with_cross_encoder(query, candidates):
-    """Ранжирует кандидатов с помощью кросс-энкодера"""
-    if isinstance(candidates, np.ndarray):
-        candidates = candidates.tolist()
-    pairs = [[query, str(candidate)] for candidate in candidates]  
-    scores = cross_encoder.predict(pairs)  
+# === Настройки поиска ===
+TOP_K = 10
+
+def find_candidates_fast(queries, top_k=10):
+    """Оптимизированный поиск кандидатов с batch-инференсом."""
+    query_embeddings = bi_encoder.encode(queries, convert_to_numpy=True, normalize_embeddings=True)
+    similarities = np.dot(response_vectors, query_embeddings.T)
+    
+    top_indices = np.argpartition(-similarities, top_k, axis=0)[:top_k].T  
+
+    batch_candidates = [
+    [house_responses[idx].strip("[]'\"") if isinstance(house_responses[idx], str) else str(house_responses[idx]) for idx in indices]
+    for indices in top_indices
+    ]
+
+
+
+    # Логирование
+    print(f"Кандидаты перед ранжированием (исправленные): {batch_candidates}")
+
+    return batch_candidates
+
+def rerank_with_cross_encoder_fast(query, candidates):
+    """Оптимизированный кросс-энкодер с batch-инференсом."""
+    if not candidates or all(len(c) == 0 for c in candidates):
+        return get_sarcastic_response(query)  # Если нет кандидатов, берем заглушку
+
+    # Разворачиваем вложенные массивы и удаляем `repr()`
+    candidates = [str(c).strip("[]'\"") if isinstance(c, (list, tuple)) else str(c).strip("[]'\"") for c in candidates]
+
+    # Формируем корректный batch_pairs
+    batch_pairs = [[query, candidate] for candidate in candidates]
+
+    print(f"Запрос: {query}")
+    print(f"Кандидаты после исправления: {batch_pairs}")
+
+    with torch.no_grad():
+        scores = cross_encoder.predict(batch_pairs, convert_to_numpy=True)
+
     best_idx = np.argmax(scores)
-    return candidates[best_idx]
+    best_response = candidates[best_idx] if best_idx < len(candidates) else get_sarcastic_response(query)
 
-def get_house_response(query):
-    """Выдает ответ, используя биэнкодер для поиска и кросс-энкодер для ранжирования"""
-    query_embedding = bi_encoder.encode([query], convert_to_numpy=True)
+    print(f"Лучший ответ: {best_response}")  # Проверка, что это одна строка
 
-    # Поиск ближайших векторов
-    distances = cdist(query_embedding, response_vectors, metric="cosine")
-    best_indices = np.argsort(distances[0])[:10]  
-
-    candidates = [house_responses[idx] for idx in best_indices]
-
-    best_response = rerank_with_cross_encoder(query, candidates)
     return best_response
+
+
+def get_sarcastic_response(query):
+    """Выбирает саркастическую заглушку."""
+    query_embedding = bi_encoder.encode([query], convert_to_numpy=True, normalize_embeddings=True)
+    sarcasm_distances = cdist(query_embedding, sarcasm_embeddings, metric="cosine")[0]
+
+    best_sarcasm_idx = np.argmin(sarcasm_distances)
+    return str(sarcasm_responses[best_sarcasm_idx])
+
+
+def get_house_response_fast(queries):
+    """Получает финальный ответ на основе оптимизированного пайплайна с обработкой пустых кандидатов."""
+    batch_candidates = find_candidates_fast(queries, top_k=10)
+
+    if all(len(c) == 0 for c in batch_candidates):
+        return [get_sarcastic_response(q) for q in queries]
+
+    responses = [rerank_with_cross_encoder_fast(q, c).strip("[]'\"") for q, c in zip(queries, batch_candidates)]
+
+    return [resp if isinstance(resp, str) else str(resp) for resp in responses]  # Гарантируем строки
+
+
+
+
+
+
+

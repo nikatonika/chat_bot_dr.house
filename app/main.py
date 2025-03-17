@@ -2,7 +2,8 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
-from app.chatbot import get_house_response 
+import json
+from app.chatbot import get_house_response_fast  # Оптимизированный инференс с заглушками
 
 app = FastAPI()
 
@@ -27,6 +28,10 @@ async def chat(request: QueryRequest):
     if not user_input:
         raise HTTPException(status_code=400, detail="Запрос не должен быть пустым")
 
-    response = get_house_response(user_input)
+    # Передаем в виде списка
+    response = get_house_response_fast([user_input])
 
-    return {"response": response}
+    # Проверяем, что ответ не пустой
+    response_text = response[0] if response and isinstance(response, list) else "I don't know what to say."
+
+    return {"response": response_text}
