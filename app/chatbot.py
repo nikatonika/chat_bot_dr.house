@@ -47,6 +47,15 @@ except Exception as e:
     print(f"Ошибка загрузки эмбеддингов: {e}")
     exit(1)
 
+
+import re
+
+def clean_text(text):
+    """Удаляет только внешние кавычки и скобки, но не внутри текста."""
+    text = str(text).strip()  # Убираем пробелы по краям
+    text = re.sub(r'^[\'"\[]+|[\'"\]]+$', '', text)  # Убираем кавычки или скобки по краям
+    return text
+
 # === Настройки поиска ===
 TOP_K = 10
 
@@ -57,8 +66,9 @@ def find_candidates_fast(queries, top_k=10):
     
     top_indices = np.argpartition(-similarities, top_k, axis=0)[:top_k].T  
 
+    # Изменения в ключевых местах:
     batch_candidates = [
-    [" ".join(str(house_responses[idx]).split("\n")).strip("[]'\"") for idx in indices]
+    [clean_text(house_responses[idx]) for idx in indices]
     for indices in top_indices
     ]
 
@@ -74,8 +84,7 @@ def rerank_with_cross_encoder_fast(query, candidates):
 
     # Разворачиваем вложенные массивы и удаляем `repr()`
         # Если строка содержит несколько реплик в одном элементе, берем только первую
-    candidates = [c.split('"  "')[0].strip() for c in candidates]
-    candidates = [str(c).strip("[]'\"") for c in candidates]
+    candidates = [clean_text(c) for c in candidates]
     batch_pairs = [[query, candidate] for candidate in candidates]
 
     print(f"Запрос: {query}")
@@ -85,7 +94,7 @@ def rerank_with_cross_encoder_fast(query, candidates):
         scores = cross_encoder.predict(batch_pairs, convert_to_numpy=True)
 
     best_idx = np.argmax(scores)
-    best_response = candidates[best_idx].strip("[]'\"") if best_idx < len(candidates) else get_sarcastic_response(query)
+    best_response = clean_text(candidates[best_idx]) if best_idx < len(candidates) else get_sarcastic_response(query)
 
     # Проверяем, что мы взяли только одну строку, а не несколько
     if "\n" in best_response:
@@ -115,8 +124,7 @@ def get_house_response_fast(queries):
     if all(len(c) == 0 for c in batch_candidates):
         return [get_sarcastic_response(q) for q in queries]
 
-    responses = [rerank_with_cross_encoder_fast(q, c).strip("[]'\"") for q, c in zip(queries, batch_candidates)]
-
+    responses = [clean_text(rerank_with_cross_encoder_fast(q, c)) for q, c in zip(queries, batch_candidates)]
     return [resp if isinstance(resp, str) else str(resp) for resp in responses]  # Гарантируем строки
 
 
