@@ -1,42 +1,37 @@
 import torch
 import numpy as np
-import pickle
-import argparse
-from sentence_transformers import SentenceTransformer, util
 import os
+from sentence_transformers import SentenceTransformer
 
-# === Аргументы командной строки ===
-parser = argparse.ArgumentParser(description="Инференс би-энкодера Доктора Хауса")
-parser.add_argument("--query", type=str, help="Текст запроса")
-parser.add_argument("--hf_model", type=str, default="nikatonika/chatbot_biencoder_v2_cos_sim", help="Название модели")
-parser.add_argument("--embeddings_path", type=str, default=os.path.join("data", "response_embeddings.npy"), help="Путь к векторным представлениям ответов")
-parser.add_argument("--responses_path", type=str, default=os.path.join("data", "questions_answers.npy"), help="Путь к вопросам и ответам")
-args = parser.parse_args()
+# Пути к данным
+DATA_DIR = os.path.join(os.path.dirname(__file__), '..', 'data')
+RESPONSES_PATH = os.path.join(DATA_DIR, 'questions_answers.npy')
+VECTORS_PATH = os.path.join(DATA_DIR, 'response_embeddings.npy')
 
-# === Загрузка модели ===
-print(f"Загрузка модели: {args.hf_model}")
-model = SentenceTransformer(args.hf_model, device="cuda" if torch.cuda.is_available() else "cpu")
+# Определение устройства
+device = "cuda" if torch.cuda.is_available() else "cpu"
 
-# === Загрузка данных ===
-print(f"Загрузка векторных представлений ответов из {args.embeddings_path}...")
-house_vectors = np.load(args.embeddings_path, allow_pickle=True)
+# Загрузка модели биэнкодера
+biencoder = SentenceTransformer("nikatonika/chatbot_biencoder_v2_cos_sim", device=device)
 
-print(f"Загрузка вопросов и ответов из {args.responses_path}...")
-house_responses = np.load(args.responses_path, allow_pickle=True)
+# Загрузка данных
+house_responses = np.load(RESPONSES_PATH, allow_pickle=True)
+response_vectors = np.load(VECTORS_PATH)
+response_vectors = torch.tensor(response_vectors, dtype=torch.float32).to(device)
 
-# === Функция поиска ответа ===
-def find_best_response(query):
-    query_vector = model.encode([query], convert_to_numpy=True)
-    scores = util.cos_sim(query_vector, house_vectors)[0]
-    best_idx = np.argmax(scores)
-    return house_responses[best_idx]
+def find_candidates(query, top_k=10):
+    query_embedding = torch.tensor(
+        biencoder.encode([query], convert_to_numpy=True, normalize_embeddings=True, truncate=True),
+        dtype=torch.float32
+    ).to(device)
 
-# === Запуск ===
-if args.query:
-    print(f"Доктор Хаус отвечает: {find_best_response(args.query)}")
-else:
-    while True:
-        user_query = input("Введите текст: ")
-        if user_query.lower() in ["exit", "quit"]:
-            break
-        print(f"Доктор Хаус отвечает: {find_best_response(user_query)}")
+    similarities = torch.matmul(response_vectors, query_embedding.T).squeeze()
+    top_indices = torch.topk(similarities, k=top_k).indices
+    return [house_responses[idx.cpu().item()] for idx in top_indices]
+
+if __name__ == "__main__":
+    user_input = input("Enter your query: ")
+    candidates = find_candidates(user_input, top_k=10)
+    print("\nTop candidates:")
+    for i, c in enumerate(candidates, 1):
+        print(f"{i}. {c}")

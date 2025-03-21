@@ -1,38 +1,60 @@
 import torch
 import numpy as np
-import argparse
-from sentence_transformers import CrossEncoder
 import os
+import re
+from sentence_transformers import SentenceTransformer, CrossEncoder
 
-# === Аргументы командной строки ===
-parser = argparse.ArgumentParser(description="Инференс кросс-энкодера Доктора Хауса")
-parser.add_argument("--query", type=str, help="Текст запроса")
-parser.add_argument("--hf_model", type=str, default="nikatonika/chatbot_reranker_v2", help="Название модели")
-parser.add_argument("--candidates_path", type=str, default=os.path.join("data", "questions_answers.npy"), help="Путь к кандидатам")
-args = parser.parse_args()
+# Пути к данным
+DATA_DIR = os.path.join(os.path.dirname(__file__), '..', 'data')
+RESPONSES_PATH = os.path.join(DATA_DIR, 'questions_answers.npy')
+VECTORS_PATH = os.path.join(DATA_DIR, 'response_embeddings.npy')
 
-# === Загрузка модели ===
-print(f"Загрузка модели: {args.hf_model}")
-cross_encoder = CrossEncoder(args.hf_model, device="cuda" if torch.cuda.is_available() else "cpu")
+# Определение устройства
+device = "cuda" if torch.cuda.is_available() else "cpu"
 
-# === Загрузка кандидатов ===
-print(f"Загрузка ответов из {args.candidates_path}...")
-house_responses = np.load(args.candidates_path, allow_pickle=True)
+# Загрузка моделей
+biencoder = SentenceTransformer("nikatonika/chatbot_biencoder_v2_cos_sim", device=device)
+cross_encoder = CrossEncoder("nikatonika/chatbot_reranker_v2", device=device)
 
-# === Функция ранжирования ===
-def rerank_with_cross_encoder(query):
-    """Ранжирует кандидатов с помощью кросс-энкодера"""
-    pairs = [[query, candidate] for candidate in house_responses]
-    scores = cross_encoder.predict(pairs)
+# Загрузка данных
+house_responses = np.load(RESPONSES_PATH, allow_pickle=True)
+response_vectors = np.load(VECTORS_PATH)
+response_vectors = torch.tensor(response_vectors, dtype=torch.float32).to(device)
+
+def clean_text(text):
+    text = str(text).strip()
+    text = re.sub(r'^[\'"\[]+|[\'"\]]+$', '', text)
+    return text
+
+def find_candidates(query, top_k=10):
+    query_embedding = torch.tensor(
+        biencoder.encode([query], convert_to_numpy=True, normalize_embeddings=True, truncate=True),
+        dtype=torch.float32
+    ).to(device)
+    similarities = torch.matmul(response_vectors, query_embedding.T).squeeze()
+    top_indices = torch.topk(similarities, k=top_k).indices
+    return [clean_text(house_responses[idx.cpu().item()]) for idx in top_indices]
+
+def rerank(query, candidates):
+    if not candidates:
+        return "I don't know what to say."
+    pairs = [[query, c] for c in candidates]
+    with torch.no_grad():
+        scores = cross_encoder.predict(pairs, convert_to_numpy=True)
     best_idx = np.argmax(scores)
-    return house_responses[best_idx]
+    best_response = candidates[best_idx] if best_idx < len(candidates) else "I don't know what to say."
+    return clean_text(best_response)
 
-# === Запуск ===
-if args.query:
-    print(f"Доктор Хаус отвечает: {rerank_with_cross_encoder(args.query)}")
-else:
+def get_response(query):
+    candidates = find_candidates(query, top_k=10)
+    return rerank(query, candidates)
+
+if __name__ == "__main__":
+    print("\n🤖 HouseBot is ready! Type your message (or 'exit' to quit).\n")
     while True:
-        user_query = input("Введите текст: ")
-        if user_query.lower() in ["exit", "quit"]:
+        user_input = input("You: ")
+        if user_input.lower() in ["exit", "quit"]:
+            print("Goodbye!")
             break
-        print(f"Доктор Хаус отвечает: {rerank_with_cross_encoder(user_query)}")
+        response = get_response(user_input)
+        print(f"HouseBot: {response}\n")

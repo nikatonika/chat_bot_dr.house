@@ -19,6 +19,8 @@ numpy
 pandas
 scikit-learn
 datasets
+fuzzywuzzy 
+python-Levenshtein  
 
 # Визуализация и логи
 matplotlib
